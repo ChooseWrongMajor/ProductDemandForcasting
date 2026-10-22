@@ -1,0 +1,30 @@
+[
+  {
+    "Mô hình": "Naive Moving Average (Baseline)",
+    "Tập": "Validation",
+    "WRMSSE": 0.9484,
+    "RMSE": 2.4007,
+    "MAE": 1.167
+  },
+  {
+    "Mô hình": "Naive Moving Average (Baseline)",
+    "Tập": "Test",
+    "WRMSSE": 1.0302,
+    "RMSE": 2.5063,
+    "MAE": 1.236
+  },
+  {
+    "Mô hình": "LightGBM Regressor (Tweedie)",
+    "Tập": "Validation",
+    "WRMSSE": 0.8599,
+    "RMSE": 2.1253,
+    "MAE": 1.1042
+  },
+  {
+    "Mô hình": "LightGBM Regressor (Tweedie)",
+    "Tập": "Test",
+    "WRMSSE": 0.9476,
+    "RMSE": 2.2745,
+    "MAE": 1.1634
+  }
+]

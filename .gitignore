@@ -1,39 +1,79 @@
+# ============================================================
+# .gitignore cho Đồ án MLOps - Dự báo nhu cầu sản phẩm (M5 Walmart)
+# ============================================================
 
-# Python cache
+# 1. Bytecode & Cache của Python
 __pycache__/
 *.py[cod]
 *$py.class
+*.so
+.pytest_cache/
 
-# Virtual environments
+# 2. Môi trường ảo (Virtual Environments)
 tdl-env/
 .venv/
 venv/
 env/
+ENV/
+env.bak/
+venv.bak/
 
-# Environment variables and secrets
-.env
-.env.*
-!.env.example
+# 3. Dữ liệu (Tuyệt đối không đẩy lên Git vì dung lượng quá lớn)
+# Toàn bộ thư mục data và các định dạng dữ liệu bảng
+data/
+*.csv
+*.tsv
+*.parquet
+*.feather
+*.h5
 
-# IDE and editor
+# 4. Trọng số & Mô hình Machine Learning (Model Artifacts)
+*.sav
+*.joblib
+*.onnx
+*.weights.h5
+# Bỏ comment nếu không muốn push file .pkl lên GitHub:
+# *.pkl
+!models/.gitkeep
+
+# 5. MLOps, Tracking & Caching
+mlruns/
+.dvc/cache/
+.dvc/tmp/
+wandb/
+runs/
+
+# 6. Jupyter Notebook & Checkpoints
+.ipynb_checkpoints/
+*-checkpoint.ipynb
+
+# Bỏ qua các notebook nghiên cứu cũ (chỉ giữ các notebook *_pipeline.ipynb)
+EDA.ipynb
+FeatureEnggineering.ipynb
+FeatureEngineering.ipynb
+Modeling.ipynb
+
+# 7. Môi trường phát triển & IDE
 .vscode/
 .idea/
+*.swp
+*.swo
+*~
 
-# OS files
+# 8. Tệp hệ điều hành
 .DS_Store
+.DS_Store?
+._*
 Thumbs.db
 desktop.ini
 
-# Jupyter Notebook
-.ipynb_checkpoints/
-
-# Logs
+# 9. Logs & Tệp tạm
 *.log
+logs/
+temp/
+tmp/
 
-# Generated files
-build/
-dist/
-*.egg-info/
-
-# Dataset CSV files (M5 Walmart)
-data/*.csv
+# 10. Bí mật & Biến môi trường
+.env
+.env.*
+!.env.example
