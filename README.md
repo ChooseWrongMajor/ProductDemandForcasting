@@ -8,7 +8,7 @@
 ## 📖 1. Giới thiệu bài toán
 
 Hệ thống tập trung giải quyết bài toán **Dự báo nhu cầu chuỗi cung ứng bán lẻ (Retail Demand Forecasting)** trên tập dữ liệu chuẩn **M5 Forecasting (Walmart)** từ Kaggle:
-- **Mục tiêu:** Dự báo chính xác số lượng bán ra của từng sản phẩm tại từng cửa hàng trong **28 ngày tiếp theo** ($T+1 \rightarrow T+28$).
+- **Mục tiêu:** Dự báo chính xác số lượng bán ra của từng sản phẩm tại từng cửa hàng trong **28 ngày tiếp theo** (từ ngày $T+1$ đến $T+28$).
 - **Thách thức kỹ thuật:**
   1. **Quy mô dữ liệu lớn:** Hơn 46 triệu dòng lịch sử giao dịch từ 2011 đến 2016.
   2. **Dữ liệu phân tán nhiều số 0 (Zero-Inflated / Intermittent Demand):** Hơn 55% ngày bán có doanh số bằng 0, phân phối lệch phải mạnh mẽ.
@@ -23,18 +23,13 @@ Quy trình MLOps được thiết kế tuần tự, tối ưu hóa qua từng gi
 
 ```mermaid
 flowchart TD
-    A["Dữ liệu gốc (data/*.csv)<br/>- calendar.csv<br/>- sell_prices.csv<br/>- sales_train_evaluation.csv"] --> B["BƯỚC 1: XỬ LÝ & LÀM SẠCH<br/>(Ingest & Preprocess)"]
-    B --> C["data/processed/sales_clean.parquet<br/>(Dữ liệu sạch, đã xử lý giá & sự kiện)"]
-    
-    C --> D["BƯỚC 2: EDA_pipeline.ipynb<br/>- Phân tích nhu cầu gián đoạn<br/>- Phân tích tính chu kỳ tuần & mùa vụ<br/>- Phân tích độ co giãn giá & SNAP"]
-    
-    C --> E["BƯỚC 3: FeatureEngineering_pipeline.ipynb<br/>- 12 đặc trưng lịch & mùa vụ (Vectorized .dt)<br/>- 6 đặc trưng giá & khuyến mãi<br/>- 19 đặc trưng chuỗi thời gian (Lag, Rolling, EWM)"]
-    
-    E --> F["Tập dữ liệu chuẩn bị sẵn:<br/>- train.parquet (4.4M dòng)<br/>- valid.parquet (85K dòng - CV)<br/>- test.parquet (85K dòng)"]
-    
-    F --> G["BƯỚC 4: Modeling_pipeline.ipynb<br/>- Naive Moving Average Baseline<br/>- LightGBM Regressor (Tweedie Loss)<br/>- Đánh giá bằng WRMSSE & RMSE"]
-    
-    G --> H["MLOps Artifacts:<br/>- Model: models/lgbm_demand_model.pkl<br/>- Metrics: reports/model_metrics.json<br/>- Trực quan hóa: Feature Importance, Actual vs Pred"]
+    A["Dữ liệu gốc (data/*.csv)"] --> B["Bước 1: Tiền xử lý & Làm sạch"]
+    B --> C["data/processed/sales_clean.parquet"]
+    C --> D["Bước 2: EDA_pipeline.ipynb"]
+    C --> E["Bước 3: FeatureEngineering_pipeline.ipynb"]
+    E --> F["Tập Train, Valid (CV), Test (parquet)"]
+    F --> G["Bước 4: Modeling_pipeline.ipynb"]
+    G --> H["MLOps Artifacts: Model .pkl & Metrics .json"]
 ```
 
 ---
@@ -79,7 +74,17 @@ Hiện thực hóa mô hình chiến thắng cuộc thi M5 với chuẩn MLOps:
   - Hỗ trợ trực tiếp các biến phân loại Categorical (như `item_id`, `dept_id`, `store_id`, `event_type_1`).
   - Tích hợp kỹ thuật *Early Stopping* chống quá khớp (Overfitting).
 - **Thước đo đánh giá WRMSSE (Weighted Root Mean Squared Scaled Error):**
-  $$RMSSE_i = \sqrt{ \frac{\frac{1}{h} \sum_{t=1}^h (Y_{i,t} - \hat{Y}_{i,t})^2}{\frac{1}{n-1} \sum_{t=2}^n (Y_{i,t} - Y_{i,t-1})^2} }, \quad WRMSSE = \sum_{i} W_i \cdot RMSSE_i$$
+
+$$
+RMSSE_i = \sqrt{ \frac{\frac{1}{h} \sum_{t=1}^h (Y_{i,t} - \hat{Y}_{i,t})^2}{\frac{1}{n-1} \sum_{t=2}^n (Y_{i,t} - Y_{i,t-1})^2} }
+$$
+
+$$
+WRMSSE = \sum_{i} W_i \cdot RMSSE_i
+$$
+
+Trong đó $W_i$ là tỷ trọng doanh thu của chuỗi sản phẩm $i$ trong 28 ngày lịch sử gần nhất, và $h = 28$ là khoảng thời gian dự báo.
+
 - **Giải thích mô hình (Feature Importance):**
   - Top 5 đặc trưng quan trọng nhất: `roll_mean_7`, `roll_mean_28`, `ewm_sales_28`, `lag_28`, `sell_price`.
 - **Lưu trữ Artifacts:**
@@ -95,7 +100,7 @@ Hiện thực hóa mô hình chiến thắng cuộc thi M5 với chuẩn MLOps:
 | **Thời gian Feature Engineering** | > 45 phút | **~25 giây** | **Nhanh hơn 100 lần** |
 | **Dung lượng RAM cần thiết** | > 12 GB (dễ crash OOM) | **~600 MB - 1 GB** | **Tiết kiệm >90% RAM** |
 | **Định dạng trung gian** | CSV cồng kềnh | **Parquet (Snappy)** | Nhẹ, giữ nguyên kiểu dữ liệu |
-| **Bảo vệ chống rò rỉ dữ liệu** | Thủ công | **Tự động hóa với shift $\ge 28$** | Chống Overfitting triệt để |
+| **Bảo vệ chống rò rỉ dữ liệu** | Thủ công | **Tự động hóa với shift >= 28** | Chống Overfitting triệt để |
 | **Quản lý Model & Metric** | Không lưu tự động | **Model Registry & Metrics JSON** | Chuẩn MLOps |
 
 ### Hiệu năng dự báo chi tiết:
@@ -168,4 +173,3 @@ Thực hiện chạy tuần tự 3 notebook:
 1. **Model Serving API:** Xây dựng ứng dụng **FastAPI** cung cấp REST API nhận mã sản phẩm/cửa hàng và trả về dự báo nhu cầu 28 ngày.
 2. **Experiment Tracking:** Tích hợp **MLflow** để tự động log siêu tham số (Hyperparameters), metrics và artifacts mỗi lần train lại.
 3. **CI/CD & Pipeline Orchestration:** Thiết lập pipeline tự động hóa bằng **DVC** và **GitHub Actions** để tự động kiểm thử và huấn luyện lại mô hình khi có dữ liệu mới.
-
